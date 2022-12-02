@@ -7,6 +7,9 @@ const ar: Translations = {
     back: "خلف",
     logOut: "تسجيل خروج", // @demo remove-current-line
   },
+  cameraScreen: {
+    goTo: "Go to camera",
+  },
   welcomeScreen: {
     postscript:
       "ربما لا يكون هذا هو الشكل الذي يبدو عليه تطبيقك مالم يمنحك المصمم هذه الشاشات وشحنها في هذه الحالة",

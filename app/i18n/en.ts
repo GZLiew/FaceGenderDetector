@@ -5,6 +5,9 @@ const en = {
     back: "Back",
     logOut: "Log Out", // @demo remove-current-line
   },
+  cameraScreen: {
+    goTo: "Go to camera",
+  },
   welcomeScreen: {
     postscript:
       "psst  — This probably isn't what your app looks like. (Unless your designer handed you these screens, and in that case, ship it!)",

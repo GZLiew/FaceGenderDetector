@@ -30,6 +30,10 @@ export const WelcomeScreen: FC<WelcomeScreenProps> = observer(function WelcomeSc
     navigation.navigate("Demo", { screen: "DemoShowroom" })
   }
 
+  function goCamera() {
+    navigation.navigate("Camera")
+  }
+
   useHeader({
     rightTx: "common.logOut",
     onRightPress: logout,
@@ -54,6 +58,14 @@ export const WelcomeScreen: FC<WelcomeScreenProps> = observer(function WelcomeSc
 
       <View style={[$bottomContainer, $bottomContainerInsets]}>
         <Text tx="welcomeScreen.postscript" size="md" />
+        {/* @demo remove-block-start */}
+        <Button
+          testID="next-screen-button"
+          preset="reversed"
+          tx="cameraScreen.goTo"
+          onPress={goCamera}
+        />
+        {/* @demo remove-block-end */}
         {/* @demo remove-block-start */}
         <Button
           testID="next-screen-button"
