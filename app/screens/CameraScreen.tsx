@@ -5,12 +5,13 @@ import * as FileSystem from "expo-file-system"
 import { StyleSheet, View } from "react-native"
 import * as tf from "@tensorflow/tfjs"
 import { bundleResourceIO, decodeJpeg } from "@tensorflow/tfjs-react-native"
-const modelJSON = require("../tfmodels/age_gender_model-weights_manifest.json")
-const modelWeights = require("../tfmodels/age_gender_model-shard1.bin")
+const modelJSON = require("../tfmodels/model.json")
+const modelWeights = require("../tfmodels/group1-shard1of1.bin")
 
 const loadModel = async () => {
   //.ts: const loadModel = async ():Promise<void|tf.LayersModel>=>{
   console.log(modelJSON)
+  await tf.ready()
   const model = await tf
     .loadLayersModel(bundleResourceIO(modelJSON, modelWeights))
     .then((res) => console.log("model loaded", res))
