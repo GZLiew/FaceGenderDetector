@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react"
 import { Camera, CameraType, FaceDetectionResult } from "expo-camera"
-import * as FaceDetector from "expo-face-detector"
 import * as FileSystem from "expo-file-system"
-import { StyleSheet, View, Text } from "react-native"
+import { StyleSheet, View, Text, Platform } from "react-native"
 import * as tf from "@tensorflow/tfjs"
-import { bundleResourceIO, decodeJpeg } from "@tensorflow/tfjs-react-native"
+import { cameraWithTensors, bundleResourceIO, decodeJpeg } from "@tensorflow/tfjs-react-native"
 const modelJSON = require("../tfmodels/face/model.json")
 const modelWeight1 = require("../tfmodels/face/group1-shard1of10.bin")
 const modelWeight2 = require("../tfmodels/face/group1-shard2of10.bin")
@@ -30,6 +29,8 @@ const modelWeights = [
   modelWeight10,
 ]
 
+const TensorCamera = cameraWithTensors(Camera)
+
 const loadModel = async () => {
   //.ts: const loadModel = async ():Promise<void|tf.LayersModel>=>{
   try {
@@ -50,15 +51,17 @@ const transformImageToTensor = async (uri: string) => {
     encoding: FileSystem.EncodingType.Base64,
   })
   const imgBuffer = tf.util.encodeString(img64, "base64").buffer
+  console.log("did I reach1??")
   const raw = new Uint8Array(imgBuffer)
+  console.log("did I reach2??")
   let imgTensor = decodeJpeg(raw)
   // const scalar = tf.scalar(255)
   //resize the image
-  imgTensor = tf.image.resizeNearestNeighbor(imgTensor, [80, 80])
+  imgTensor = tf.image.resizeNearestNeighbor(imgTensor, [300, 300])
   //normalize; if a normalization layer is in the model, this step can be skipped
   // const tensorScaled = imgTensor.div(scalar)
   //final shape of the tensor
-  const img = tf.image.resizeBilinear(imgTensor, [80, 80], false)
+  const img = tf.image.resizeBilinear(imgTensor, [80, 80], false, true)
   return img
 }
 
@@ -86,6 +89,10 @@ const styles = StyleSheet.create({
 })
 
 export const CameraScreen = () => {
+  let requestAnimationFrameId = 0
+  let frameCount = 0
+  let makePredictionsEveryNFrames = 1
+  let queueSize = 0
   const [cameraLoaded, setCameraLoaded] = useState(false)
   const cameraRef = React.useRef<Camera>()
   const tfModelRef = React.useRef<tf.LayersModel>(null)
@@ -132,24 +139,68 @@ export const CameraScreen = () => {
     }
   }
 
+  const handleCameraStream = (imageAsTensors: any) => {
+    if (!imageAsTensors) {
+      console.log("Image not found!")
+    }
+    const loop = async () => {
+      if (frameCount % makePredictionsEveryNFrames === 0) {
+        const imageTensor = imageAsTensors.next().value
+
+        if (cameraLoaded !== null) {
+          console.log({ imageTensor })
+          // await getPrediction(imageTensor).catch((e) => console.log(e))
+        }
+        tf.dispose(imageAsTensors)
+      }
+
+      frameCount += 1
+      frameCount = frameCount % makePredictionsEveryNFrames
+      requestAnimationFrameId = requestAnimationFrame(loop)
+    }
+    //loop infinitely to constantly make predictions
+    loop()
+  }
+
+  const tensorDims = { height: 80, width: 80, depth: 3 }
+
+  const textureDimsState =
+    Platform.OS == "android" ? { height: 1200, width: 1600 } : { height: 1920, width: 1080 }
+
+  const AUTORENDER = true
+
   return (
     <View style={[styles.root]}>
       {!cameraLoaded && <Text>Loading camera...</Text>}
       {cameraLoaded && status?.granted && (
-        <Camera
-          ref={cameraRef}
-          onFacesDetected={handleFacesDetected}
-          type={CameraType.front}
-          faceDetectorSettings={{
-            mode: FaceDetector.FaceDetectorMode.fast,
-            detectLandmarks: FaceDetector.FaceDetectorLandmarks.none,
-            runClassifications: FaceDetector.FaceDetectorClassifications.none,
-            minDetectionInterval: 5000,
-            tracking: true,
-          }}
+        <TensorCamera
+          useCustomShadersToResize={false}
           style={StyleSheet.absoluteFill}
+          type={CameraType.front}
+          zoom={0}
+          cameraTextureHeight={textureDimsState.height}
+          cameraTextureWidth={textureDimsState.width}
+          resizeHeight={tensorDims.height}
+          resizeWidth={tensorDims.width}
+          resizeDepth={tensorDims.depth}
+          onReady={(imageAsTensors) => handleCameraStream(imageAsTensors)}
+          autorender={AUTORENDER}
         />
       )}
     </View>
   )
 }
+
+// <Camera
+//   ref={cameraRef}
+//   onFacesDetected={handleFacesDetected}
+//   type={CameraType.front}
+//   faceDetectorSettings={{
+//     mode: FaceDetector.FaceDetectorMode.fast,
+//     detectLandmarks: FaceDetector.FaceDetectorLandmarks.none,
+//     runClassifications: FaceDetector.FaceDetectorClassifications.none,
+//     minDetectionInterval: 5000,
+//     tracking: true,
+//   }}
+//   style={StyleSheet.absoluteFill}
+// />
